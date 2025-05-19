@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lens Profile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Lens Profile</h1>
+            <div class="profile-header">
+                <div class="profile-pic">
+                    <img src="assets/default-avatar.png" alt="Profile Picture" id="profileImage">
+                </div>
+                <div class="profile-info">
+                    <h2 id="handle">@username</h2>
+                    <p id="bio">Loading profile...</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="stats">
+                <div class="stat-item">
+                    <span id="followersCount">0</span>
+                    <label>Followers</label>
+                </div>
+                <div class="stat-item">
+                    <span id="followingCount">0</span>
+                    <label>Following</label>
+                </div>
+                <div class="stat-item">
+                    <span id="postsCount">0</span>
+                    <label>Posts</label>
+                </div>
+            </section>
+
+            <section class="posts" id="postsSection">
+                <h2>Recent Posts</h2>
+                <div class="posts-list">
+                    <!-- Posts will be dynamically loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
