@@ -1,32 +1,167 @@
-// Lens API configuration
-const LENS_API_URL = 'https://api-v2.lens.dev';
+// Application constants
 const DEFAULT_AVATAR = 'assets/default-avatar.png';
-
-// Local proxy server URL (for development)
 const PROXY_URL = '/api/proxy';
 
-// DOM Elements
-const profileImage = document.getElementById('profileImage');
-const handleElement = document.getElementById('handle');
-const bioElement = document.getElementById('bio');
-const followersCount = document.getElementById('followersCount');
-const followingCount = document.getElementById('followingCount');
-const postsCount = document.getElementById('postsCount');
-const postsSection = document.getElementById('postsSection');
-const loadingIndicator = document.createElement('div');
+// Will be set from config.json
+let LENS_API_URL;
 
-// Add loading indicator styles
-loadingIndicator.className = 'loading-indicator';
-loadingIndicator.innerHTML = '<div class="spinner"></div><p>Loading...</p>';
+// DOM Elements
+let profileImage, handleElement, bioElement, followersCount, followingCount, postsCount, postsSection, loadingIndicator;
+
+// Initialize the app after config is loaded and DOM is ready
+function initializeApp() {
+  try {
+    console.log('initializeApp() called');
+    console.log('Current window.lensConfig:', window.lensConfig);
+    
+    if (!window.lensConfig) {
+      throw new Error('lensConfig is not defined');
+    }
+    
+    if (!window.lensConfig.lensName) {
+      throw new Error('lensConfig.lensName is not defined');
+    }
+    
+    // Set up DOM elements
+    console.log('Setting up DOM elements...');
+    profileImage = document.getElementById('profileImage');
+    handleElement = document.getElementById('handle');
+    bioElement = document.getElementById('bio');
+    followersCount = document.getElementById('followersCount');
+    followingCount = document.getElementById('followingCount');
+    postsCount = document.getElementById('postsCount');
+    postsSection = document.getElementById('postsSection');
+    
+    // Set up loading indicator
+    loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.innerHTML = '<div class="spinner"></div><p>Loading...</p>';
+
+    // Get handle from URL or use default from config
+    const urlParams = new URLSearchParams(window.location.search);
+    const handleFromUrl = urlParams.get('handle');
+    const defaultHandle = `${window.lensConfig.lensName}.lens`;
+    const handle = handleFromUrl || defaultHandle;
+    
+    console.log('Using handle:', handle, '(from URL:', handleFromUrl, ', default:', defaultHandle, ')');
+    
+    // Return the handle to be used for fetching profile data
+    return handle;
+  } catch (error) {
+    console.error('Error in initializeApp:', error);
+    hideLoading();
+    alert('Error initializing application: ' + error.message);
+    throw error; // Re-throw to be caught by the caller
+  }
+}
 
 // Function to show loading state
 function showLoading() {
+  if (loadingIndicator && document.body) {
     document.body.appendChild(loadingIndicator);
+  }
 }
 
 // Function to hide loading state
 function hideLoading() {
+  if (loadingIndicator && loadingIndicator.parentNode) {
     loadingIndicator.remove();
+  }
+}
+
+console.log('Starting app initialization...');
+
+// Show loading state immediately
+showLoading();
+
+// Load config and initialize app
+function loadApp() {
+  console.log('Loading config.json...');
+  
+  // First, check if config is already loaded (e.g., in development)
+  if (window.lensConfig) {
+    console.log('Using existing window.lensConfig:', window.lensConfig);
+    initializeWithConfig(window.lensConfig);
+    return;
+  }
+
+  // Otherwise, fetch the config file
+  fetch('config.json')
+    .then(response => {
+      console.log('Config fetch response received, status:', response.status);
+      if (!response.ok) {
+        throw new Error(`Failed to load config.json: HTTP ${response.status}`);
+      }
+      return response.json().catch(e => {
+        throw new Error('Failed to parse config.json: ' + e.message);
+      });
+    })
+    .then(config => {
+      console.log('Config parsed successfully:', config);
+      initializeWithConfig(config);
+    })
+    .catch(error => {
+      console.error('Error loading config:', error);
+      hideLoading();
+      alert('Error loading configuration: ' + error.message);
+    });
+    
+  function initializeWithConfig(config) {
+    try {
+      // Validate required config
+      console.log('Validating config...');
+      if (!config) {
+        throw new Error('Config is null or undefined');
+      }
+      if (!config.lensName) {
+        throw new Error('config.json is missing required field: lensName');
+      }
+      if (!config.namespace) {
+        throw new Error('config.json is missing required field: namespace');
+      }
+      if (!config.evmAddress) {
+        throw new Error('config.json is missing required field: evmAddress');
+      }
+
+      // Set config values
+      console.log('Config validation successful, setting window.lensConfig');
+      window.lensConfig = config;
+      LENS_API_URL = config.lensApiUrl || 'https://api-v2.lens.dev';
+      
+      console.log('Calling initializeApp()...');
+      // Initialize the app and get the handle
+      const handle = initializeApp();
+      
+      // Only fetch profile data if initialization was successful
+      if (handle) {
+        console.log('Initialization successful, calling fetchProfileData...');
+        fetchProfileData(handle).catch(error => {
+          console.error('Error in fetchProfileData:', error);
+          hideLoading();
+          alert('Error loading profile data: ' + error.message);
+        });
+      }
+    } catch (error) {
+      console.error('Error initializing with config:', error);
+      hideLoading();
+      alert('Error initializing application: ' + error.message);
+    }
+  }
+}
+
+console.log('Initial script execution - checking DOM ready state...');
+console.log('Current document.readyState:', document.readyState);
+
+// Start loading when DOM is ready
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  console.log('DOM already ready, calling loadApp()');
+  loadApp();
+} else {
+  console.log('Waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded event fired, calling loadApp()');
+    loadApp();
+  });
 }
 
 // Function to fetch profile data from Lens Chain
@@ -81,8 +216,8 @@ async function fetchProfileData(handle) {
                 variables: {
                     request: {
                         username: {
-                            localName: 'danielwonder',
-                            namespace: '0x1aA55B9042f08f45825dC4b651B64c9F98Af4615'
+                            localName: window.lensConfig.lensName,
+                            namespace: window.lensConfig.namespace
                         }
                     }
                 }
@@ -273,7 +408,7 @@ async function loadPosts(profileId) {
                 posts(
                     request: {
                         filter: {
-                            authors: ["0xeF9AE7Cc7611a218Df8999A24a5bD970A55dFe3F"]
+                            authors: ["${window.lensConfig.evmAddress}"]
                         }
                     }
                 ) {
@@ -293,7 +428,7 @@ async function loadPosts(profileId) {
             }
         `;
 
-        console.log('Sending posts query:', query);
+        console.log('Sending posts query for address:', window.lensConfig.evmAddress);
         
         const response = await fetch(`${PROXY_URL}/posts`, {
             method: 'POST',
@@ -301,7 +436,7 @@ async function loadPosts(profileId) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                query,
+                query: query,
                 variables: {}
             })
         });
@@ -776,13 +911,3 @@ function renderRepost(repost, postsList) {
     // Add to the posts list
     postsList.appendChild(postCard);
 }
-
-// Initialize the profile page
-document.addEventListener('DOMContentLoaded', () => {
-    // Get the handle from URL parameter or use default
-    const urlParams = new URLSearchParams(window.location.search);
-    const handle = urlParams.get('handle') || 'danielwonder.lens';
-    
-    // Fetch profile data
-    fetchProfileData(handle);
-});
