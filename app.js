@@ -35,19 +35,22 @@ async function fetchProfileData(handle) {
         showLoading();
         
         // First query for account data
-        const accountQuery = `query Account($request: AccountRequest!) {
+        const accountQuery = `
+          query Profile($request: AccountRequest!) {
             account(request: $request) {
-                address
-                username {
-                    value
-                }
-                metadata {
-                    name
-                    bio
-                    picture
-                }
+              id
+              address
+              username {
+                value
+              }
+              metadata {
+                name
+                bio
+                picture
+                coverPicture
+              }
             }
-        }`;
+          }`;
 
         // Second query for stats
         const statsQuery = `query AccountStats($request: AccountStatsRequest!) {
@@ -92,7 +95,14 @@ async function fetchProfileData(handle) {
         }
         
         const accountData = await accountResponse.json();
-        console.log('Received account data:', accountData);
+        console.log('Raw account data:', JSON.stringify(accountData, null, 2));
+        
+        // Debug the account data structure
+        if (accountData.data?.account) {
+            console.log('Account object:', accountData.data.account);
+            console.log('Metadata:', accountData.data.account.metadata);
+            console.log('Cover picture from response:', accountData.data.account.metadata?.coverPicture);
+        }
 
         if (!accountData.data || !accountData.data.account) {
             throw new Error('Account not found');
@@ -138,9 +148,45 @@ async function fetchProfileData(handle) {
 
 // Function to update UI with profile data
 function updateProfileUI(account, stats) {
-    handleElement.textContent = `@${account.username.value}`;
-    bioElement.textContent = account.metadata.bio || 'No bio available';
-    profileImage.src = account.metadata.picture || DEFAULT_AVATAR;
+    console.log('Updating UI with account:', JSON.stringify(account, null, 2));
+    console.log('Account metadata:', account.metadata);
+    
+    // Update hero section
+    const hero = document.querySelector('header.hero');
+    const heroName = document.getElementById('heroName');
+    const heroTagline = document.getElementById('heroTagline');
+    const displayName = account.metadata?.name || account.username?.value || 'Profile Name';
+    
+    // Set hero background image if cover picture exists
+    const coverPicture = account.metadata?.coverPicture;
+    console.log('Cover picture URL:', coverPicture);
+    
+    if (coverPicture) {
+        console.log('Setting cover image URL:', coverPicture);
+        hero.style.backgroundImage = `url('${coverPicture}')`;
+        hero.style.backgroundSize = 'cover';
+        hero.style.backgroundPosition = 'center';
+        hero.style.backgroundRepeat = 'no-repeat';
+    } else {
+        console.log('No cover picture found, using black background');
+        hero.style.background = 'black';
+    }
+    
+    if (heroName) heroName.textContent = displayName;
+    if (heroTagline) {
+        heroTagline.innerHTML = account.metadata?.bio 
+            ? account.metadata.bio.replace(/\n/g, '<br>') 
+            : `@${account.username?.value || ''}`;
+    }
+    // Handle profile picture
+    const profilePicture = account.metadata?.picture;
+    if (profilePicture) {
+        console.log('Setting profile picture URL:', profilePicture);
+        profileImage.src = profilePicture;
+    } else {
+        console.log('Using default avatar');
+        profileImage.src = DEFAULT_AVATAR;
+    }
 
     // Update stats
     const feedStats = stats?.feedStats || {};
@@ -364,12 +410,14 @@ function formatTimestamp(ts) {
 // Helper to get post content with graceful fallbacks
 function getPostContent(metadata) {
     if (!metadata) return 'No content available';
-    return (
-        metadata.content ||
-        metadata.title ||
-        metadata.text ||
-        'Shared content'
-    );
+    // Handle ArticleMetadata specifically
+    if (metadata.__typename === 'ArticleMetadata') {
+        return metadata.content || 'Article content not available';
+    }
+    if (metadata.content) return metadata.content;
+    if (metadata.description) return metadata.description;
+    if (metadata.name) return metadata.name;
+    return 'No content available';
 }
 
 // Function to render a regular post
@@ -395,17 +443,42 @@ function renderPost(post, postsList) {
     `;
     postCard.appendChild(headerEl);
 
-    // Post content (with title if present)
+    // Create content container
     const contentEl = document.createElement('div');
-    contentEl.className = 'post-content';
-    let contentHtml = '';
-    if (post.metadata?.title) {
-        contentHtml += `<h3 class="post-title">${post.metadata.title}</h3>`;
+    
+    // Handle ArticleMetadata
+    if (post.metadata?.__typename === 'ArticleMetadata') {
+        const { title, content, attributes = [] } = post.metadata;
+        const attrMap = Object.fromEntries(attributes.map(a => [a.key, a.value]));
+        contentEl.className = 'post-content article-content';
+        
+        // Add cover image if available
+        if (attrMap.coverUrl) {
+            const coverEl = document.createElement('div');
+            coverEl.className = 'article-cover';
+            coverEl.innerHTML = `<img src="${attrMap.coverUrl}" alt="${title || 'Article cover'}" class="article-cover-image">`;
+            postCard.appendChild(coverEl);
+        }
+        
+        // Add title and content
+        let contentHtml = '';
+        if (title) contentHtml += `<h2 class="article-title">${title}</h2>`;
+        if (attrMap.subtitle) contentHtml += `<h3 class="article-subtitle">${attrMap.subtitle}</h3>`;
+        if (content) contentHtml += `<div class="article-body">${content}</div>`;
+        contentEl.innerHTML = contentHtml;
+    } else {
+        // Original text post rendering
+        contentEl.className = 'post-content';
+        let contentHtml = '';
+        if (post.metadata?.title) {
+            contentHtml += `<h3 class="post-title">${post.metadata.title}</h3>`;
+        }
+        contentHtml += `<p>${getPostContent(post.metadata)}</p>`;
+        contentEl.innerHTML = contentHtml;
     }
-    contentHtml += `<p>${getPostContent(post.metadata)}</p>`;
-    contentEl.innerHTML = contentHtml;
+    
+    // Append the content element to the post card
     postCard.appendChild(contentEl);
-    // (removed duplicate contentEl and contentHtml declarations)
     
     // Media
     const media = extractMedia(post.metadata);

@@ -117,6 +117,7 @@ app.post('/api/proxy/accounts', async (req, res) => {
                         name
                         bio
                         picture
+                        coverPicture
                     }
                 }
             }`;

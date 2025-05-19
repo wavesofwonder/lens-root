@@ -4,6 +4,135 @@
     box-sizing: border-box;
 }
 
+/* Article Styles */
+.article-content {
+    padding: 1rem 0;
+}
+
+.article-cover {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.article-cover-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.article-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    color: #1e293b;
+}
+
+.article-subtitle {
+    font-size: 1.25rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.article-body {
+    line-height: 1.7;
+    color: #334155;
+    font-size: 1.1rem;
+}
+
+.article-body p {
+    margin-bottom: 1.5rem;
+}
+
+.article-body a {
+    color: #3b82f6;
+    text-decoration: none;
+}
+
+.article-body a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .article-title {
+        font-size: 1.75rem;
+    }
+    
+    .article-subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .article-body {
+        font-size: 1rem;
+    }
+}
+
+.hero {
+    width: 100vw;
+    min-height: 320px;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1;
+    border-radius: 0 0 24px 24px;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #fff;
+    padding: 0 1.5rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-name {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.24);
+}
+
+.hero-tagline {
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1.6;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.16);
+}
+
+@media (max-width: 600px) {
+    .hero {
+        min-height: 180px;
+    }
+    .hero-name {
+        font-size: 1.5rem;
+    }
+    .hero-tagline {
+        font-size: 1rem;
+    }
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
@@ -48,7 +177,6 @@ body {
 
 header {
     background: white;
-    border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 2rem;
@@ -61,12 +189,15 @@ header {
 }
 
 .profile-pic {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    margin-bottom: 1.5rem;
+    z-index: 2;
+    position: relative;
 }
 
 .author-avatar {
