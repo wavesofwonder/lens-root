@@ -224,6 +224,14 @@ async function loadPosts(profileId) {
                     ... on TextOnlyMetadata {
                         content
                     }
+                    ... on ArticleMetadata {
+                        title
+                        content
+                        attributes {
+                            key
+                            value
+                        }
+                    }
                 }
                 stats {
                     comments
@@ -448,24 +456,163 @@ function renderPost(post, postsList) {
     
     // Handle ArticleMetadata
     if (post.metadata?.__typename === 'ArticleMetadata') {
-        const { title, content, attributes = [] } = post.metadata;
+        console.log('Rendering ArticleMetadata:', post.metadata);
+        const { title, attributes = [] } = post.metadata;
         const attrMap = Object.fromEntries(attributes.map(a => [a.key, a.value]));
-        contentEl.className = 'post-content article-content';
         
-        // Add cover image if available
-        if (attrMap.coverUrl) {
-            const coverEl = document.createElement('div');
-            coverEl.className = 'article-cover';
-            coverEl.innerHTML = `<img src="${attrMap.coverUrl}" alt="${title || 'Article cover'}" class="article-cover-image">`;
-            postCard.appendChild(coverEl);
+        // Create article wrapper first
+        const articleWrapper = document.createElement('div');
+        articleWrapper.className = 'article-wrapper';
+        
+        // Add the content element to the post card first
+        contentEl.className = 'post-content article-content';
+        postCard.appendChild(contentEl);
+        
+        // We'll keep the cover image in the content flow
+        const coverUrl = attrMap.coverUrl; // Store the cover URL for reference
+        
+        // Add title and subtitle
+        if (title) {
+            const titleEl = document.createElement('h2');
+            titleEl.className = 'article-title';
+            titleEl.textContent = title;
+            articleWrapper.appendChild(titleEl);
         }
         
-        // Add title and content
-        let contentHtml = '';
-        if (title) contentHtml += `<h2 class="article-title">${title}</h2>`;
-        if (attrMap.subtitle) contentHtml += `<h3 class="article-subtitle">${attrMap.subtitle}</h3>`;
-        if (content) contentHtml += `<div class="article-body">${content}</div>`;
-        contentEl.innerHTML = contentHtml;
+        if (attrMap.subtitle) {
+            const subtitleEl = document.createElement('h3');
+            subtitleEl.className = 'article-subtitle';
+            subtitleEl.textContent = attrMap.subtitle;
+            articleWrapper.appendChild(subtitleEl);
+        }
+        
+        // Process content from contentJson attribute
+        if (attrMap.contentJson) {
+            try {
+                const contentBlocks = JSON.parse(attrMap.contentJson);
+                if (Array.isArray(contentBlocks)) {
+                    const articleBody = document.createElement('div');
+                    articleBody.className = 'article-body';
+                    
+                    contentBlocks.forEach(block => {
+                        if (!block) return;
+                        
+                        try {
+                            switch (block.type) {
+                                case 'title':
+                                case 'subtitle':
+                                    // Skip as we already handled these
+                                    break;
+                                    
+                                case 'img':
+                                    // Handle all images in the content
+                                    if (block.url) {
+                                        const isCoverImage = coverUrl && block.url.includes(coverUrl.split('/').pop());
+                                        const containerClass = isCoverImage ? 'article-cover' : `article-image ${block.width === 'wide' ? 'wide-image' : ''}`;
+                                        
+                                        const imgContainer = document.createElement('div');
+                                        imgContainer.className = containerClass;
+                                        
+                                        const img = document.createElement('img');
+                                        img.src = block.url;
+                                        img.alt = block.alt || (isCoverImage ? (title || 'Article cover') : '');
+                                        img.className = isCoverImage ? 'article-cover-image' : '';
+                                        imgContainer.appendChild(img);
+                                        
+                                        if (block.caption) {
+                                            const caption = document.createElement('div');
+                                            caption.className = 'image-caption';
+                                            caption.textContent = block.caption;
+                                            imgContainer.appendChild(caption);
+                                        }
+                                        
+                                        articleBody.appendChild(imgContainer);
+                                    }
+                                    break;
+                                    
+                                case 'p':
+                                case 'paragraph':
+                                    const text = block.children?.map(child => child?.text || '').join('').trim();
+                                    if (text) {
+                                        const p = document.createElement('p');
+                                        p.textContent = text;
+                                        articleBody.appendChild(p);
+                                    }
+                                    break;
+                                    
+                                case 'h1':
+                                case 'h2':
+                                case 'h3':
+                                case 'h4':
+                                case 'h5':
+                                case 'h6':
+                                    const headingText = block.children?.map(child => child?.text || '').join('').trim();
+                                    if (headingText) {
+                                        const heading = document.createElement(block.type);
+                                        heading.textContent = headingText;
+                                        articleBody.appendChild(heading);
+                                    }
+                                    break;
+                                    
+                                case 'ul':
+                                case 'ol':
+                                    if (block.children?.length) {
+                                        const list = document.createElement(block.type);
+                                        list.className = `article-${block.type}`;
+                                        
+                                        block.children.forEach(li => {
+                                            if (li?.children?.length) {
+                                                const liText = li.children.map(child => child?.text || '').join('').trim();
+                                                if (liText) {
+                                                    const liEl = document.createElement('li');
+                                                    liEl.textContent = liText;
+                                                    list.appendChild(liEl);
+                                                }
+                                            }
+                                        });
+                                        
+                                        if (list.children.length > 0) {
+                                            articleBody.appendChild(list);
+                                        }
+                                    }
+                                    break;
+                                    
+                                default:
+                                    console.log('Unhandled block type:', block.type, block);
+                            }
+                        } catch (blockError) {
+                            console.error('Error rendering block:', block, blockError);
+                        }
+                    });
+                    
+                    if (articleBody.children.length > 0) {
+                        articleWrapper.appendChild(articleBody);
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing contentJson:', e);
+                if (post.metadata.content) {
+                    const fallbackContent = document.createElement('div');
+                    fallbackContent.className = 'article-body';
+                    fallbackContent.textContent = post.metadata.content;
+                    articleWrapper.appendChild(fallbackContent);
+                }
+            }
+        } else if (post.metadata.content) {
+            // Fallback to plain content if no contentJson
+            const fallbackContent = document.createElement('div');
+            fallbackContent.className = 'article-body';
+            fallbackContent.textContent = post.metadata.content;
+            articleWrapper.appendChild(fallbackContent);
+        }
+        
+        // Only append the wrapper if it has content
+        if (articleWrapper.children.length > 0) {
+            contentEl.appendChild(articleWrapper);
+        } else {
+            // If no content, ensure we still have the content element
+            contentEl.textContent = 'No content available';
+        }
     } else {
         // Original text post rendering
         contentEl.className = 'post-content';
