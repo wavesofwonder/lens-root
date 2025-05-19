@@ -438,19 +438,6 @@ function renderPost(post, postsList) {
     const postCard = document.createElement('div');
     postCard.className = 'post-card';
 
-    // Post header: author, app, timestamp
-    const headerEl = document.createElement('div');
-    headerEl.className = 'post-header';
-    headerEl.innerHTML = `
-        <div class="post-author">
-            <img src="${post.author.metadata?.picture || DEFAULT_AVATAR}" 
-                 alt="${post.author.metadata?.name || 'User'}" 
-                 class="author-avatar">
-            <span class="author-name">${post.author.metadata?.name || post.author.username?.value || 'Unknown'}</span>
-        </div>
-    `;
-    postCard.appendChild(headerEl);
-
     // Create content container
     const contentEl = document.createElement('div');
     
@@ -671,18 +658,19 @@ function renderPost(post, postsList) {
     }
     const tsObj = formatTimestamp(post.timestamp);
     let postedViaText = appLogoHtml
-        ? `Posted via ${appLogoHtml}${tsObj.isRelative ? ' ' : ' on '}${tsObj.str}`
-        : `Posted${tsObj.isRelative ? ' ' : ' on '}${tsObj.str}`;
+        ? `via ${appLogoHtml}${tsObj.isRelative ? ' ' : ' on '}${tsObj.str}`
+        : `${tsObj.isRelative ? '' : 'on '}${tsObj.str}`;
+    const authorName = post.author.metadata?.name || post.author.username?.value || 'Unknown';
+    const authorAvatar = post.author.metadata?.picture || DEFAULT_AVATAR;
     statsEl.innerHTML = `
         <span class="stat">❤️ ${post.stats?.totalUpvotes || 0}</span>
         <span class="stat">💬 ${post.stats?.comments || 0}</span>
         <span class="stat">🔁 ${post.stats?.totalAmountOfMirrors || 0}</span>
         <span class="stat">🔄 ${post.stats?.totalAmountOfCollects || 0}</span>
-        <span class="stat posted-via">${postedViaText}</span>
+        <span class="stat posted-via">Posted by ${authorName} <img src="${authorAvatar}" alt="${authorName}" class="author-avatar-small"> ${postedViaText}</span>
     `;
     
     // Assemble the post card
-    postCard.appendChild(headerEl);
     postCard.appendChild(contentEl);
     postCard.appendChild(statsEl);
     
@@ -710,21 +698,9 @@ function renderRepost(repost, postsList) {
         <span class="repost-text">Reposted by ${repostedBy.metadata?.name || repostedBy.username?.value || 'Someone'}</span>
     `;
     
-    // Original post header: author, app, timestamp
-    const originalHeader = document.createElement('div');
-    originalHeader.className = 'post-header';
-    originalHeader.innerHTML = `
-        <div class="post-author">
-            <img src="${originalPost.author.metadata?.picture || DEFAULT_AVATAR}" 
-                 alt="${originalPost.author.metadata?.name || 'User'}" 
-                 class="author-avatar">
-            <span class="author-name">${originalPost.author.metadata?.name || originalPost.author.username?.value || 'Unknown'}</span>
-        </div>
-    `;
-    // Original post content (with title and fallback)
+    // Original post content (without header, will be in stats line)
     const originalPostEl = document.createElement('div');
     originalPostEl.className = 'original-post';
-    originalPostEl.appendChild(originalHeader);
     let origContentHtml = '';
     if (originalPost.metadata?.title) {
         origContentHtml += `<h3 class="post-title">${originalPost.metadata.title}</h3>`;
@@ -766,7 +742,7 @@ function renderRepost(repost, postsList) {
         }
         originalPostEl.appendChild(mediaEl);
     }
-    // Stats for original post + app icon and repost date
+    // Stats for original post + author info + app icon and repost date
     const statsEl = document.createElement('div');
     statsEl.className = 'post-stats';
     let appLogoHtml = '';
@@ -776,15 +752,20 @@ function renderRepost(repost, postsList) {
         appLogoHtml = appUrl ? `<a href="${appUrl}" target="_blank" rel="noopener">${logoImg}</a>` : logoImg;
     }
     const tsObj = formatTimestamp(repost.timestamp);
-    let repostedViaText = appLogoHtml
-        ? `Reposted by ${repostedBy.metadata?.name || repostedBy.username?.value || 'Someone'} via ${appLogoHtml}${tsObj.isRelative ? ' ' : ' on '}${tsObj.str}`
-        : `Reposted by ${repostedBy.metadata?.name || repostedBy.username?.value || 'Someone'}${tsObj.isRelative ? ' ' : ' on '}${tsObj.str}`;
+    const authorName = originalPost.author.metadata?.name || originalPost.author.username?.value || 'Unknown';
+    const authorAvatar = originalPost.author.metadata?.picture || DEFAULT_AVATAR;
+    const reposterName = repostedBy.metadata?.name || repostedBy.username?.value || 'Someone';
+    
+    let postedViaText = appLogoHtml
+        ? `via ${appLogoHtml}${tsObj.isRelative ? ' ' : ' on '}${tsObj.str}`
+        : `${tsObj.isRelative ? '' : 'on '}${tsObj.str}`;
+        
     statsEl.innerHTML = `
         <span class="stat">❤️ ${originalPost.stats?.totalUpvotes || 0}</span>
         <span class="stat">💬 ${originalPost.stats?.comments || 0}</span>
         <span class="stat">🔁 ${originalPost.stats?.totalAmountOfMirrors || 0}</span>
         <span class="stat">🔄 ${originalPost.stats?.totalAmountOfCollects || 0}</span>
-        <span class="stat posted-via">${repostedViaText}</span>
+        <span class="stat posted-via">Posted by ${authorName} <img src="${authorAvatar}" alt="${authorName}" class="author-avatar-small"> • Reposted by ${reposterName} ${postedViaText}</span>
     `;
     originalPostEl.appendChild(statsEl);
 
