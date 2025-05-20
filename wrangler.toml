@@ -1,0 +1,11 @@
+name = "lens-proxy"
+main = "worker.js"
+compatibility_date = "2024-05-20"
+
+[build]
+upload.format = "modules"
+
+[vars]
+LENS_API_URL = "https://api.lens.xyz/graphql"
+DEFAULT_NAMESPACE = "0x1aA55B9042f08f45825dC4b651B64c9F98Af4615"
+DEFAULT_LOCALNAME = "danielwonder"

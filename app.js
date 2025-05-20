@@ -1,9 +1,7 @@
 // Application constants
 const DEFAULT_AVATAR = 'assets/default-avatar.png';
-const PROXY_URL = '/api/proxy';
+const WORKER_URL = 'https://lens-proxy.qtroad.workers.dev/api/proxy';
 
-// Will be set from config.json
-let LENS_API_URL;
 
 // DOM Elements
 let profileImage, handleElement, bioElement, followersCount, followingCount, postsCount, postsSection, loadingIndicator;
@@ -206,23 +204,23 @@ async function fetchProfileData(handle) {
         }`;
 
         // Make request for account data
-        const accountResponse = await fetch(`${PROXY_URL}/accounts`, {
+        const accountResponse = await fetch(`${WORKER_URL}/accounts`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                query: accountQuery,
-                variables: {
-                    request: {
-                        username: {
-                            localName: window.lensConfig.lensName,
-                            namespace: window.lensConfig.namespace
-                        }
-                    }
+              query: accountQuery,
+              variables: {
+                request: {
+                  username: {
+                    localName: window.lensConfig.lensName,
+                    namespace: window.lensConfig.namespace
+                  }
                 }
+              }
             })
-        });
+          });
 
         if (!accountResponse.ok) {
             const errorData = await accountResponse.json().catch(() => ({}));
@@ -246,18 +244,18 @@ async function fetchProfileData(handle) {
         const account = accountData.data.account;
 
         // Make request for stats data using account address
-        const statsResponse = await fetch(`${PROXY_URL}/stats`, {
+        const statsResponse = await fetch(`${WORKER_URL}/stats`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                query: statsQuery,
-                variables: {
-                    address: account.address
-                }
+              query: statsQuery,
+              variables: {
+                address: account.address
+              }
             })
-        });
+          });
 
         if (!statsResponse.ok) {
             const errorData = await statsResponse.json().catch(() => ({}));
@@ -430,7 +428,7 @@ async function loadPosts(profileId) {
 
         console.log('Sending posts query for address:', window.lensConfig.evmAddress);
         
-        const response = await fetch(`${PROXY_URL}/posts`, {
+        const response = await fetch(`${WORKER_URL}/posts`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

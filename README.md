@@ -14,7 +14,7 @@ Most profile tools today are offchain, centralized, or siloed. Root uses Lens pr
 
 - Static single-page site using vanilla HTML/JS
 - Config-driven identity loading via `config.json`
-- Connected to Lens API using a local Express proxy server to bypass CORS restrictions
+- ~~Connected to Lens API using a local Express proxy server to bypass CORS restrictions~~ Now connects via a Cloudflare Worker for CORS-safe GraphQL proxying
 - Profile metadata and recent posts (from Hey.xyz and Fountain.ink) are fetched and rendered
 - Covers multiple Lens post types (Text, Article, Reposts) with light media handling
 - Clean, modular layout designed for future extension
